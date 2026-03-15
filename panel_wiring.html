@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>לוח CI - בדיקת חיווט מדורגת</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    background: #0b1016;
+    color: #d7dde5;
+    min-height: 100vh;
+    padding: 18px;
+}
+.page {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+h1 {
+    color: #17c0d8;
+    font-size: 22px;
+    margin-bottom: 4px;
+}
+.subtitle {
+    color: #72808e;
+    font-size: 12px;
+    margin-bottom: 14px;
+}
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid #1d2a36;
+    border-radius: 10px;
+    background: #0f151d;
+}
+.status {
+    min-width: 220px;
+    font-size: 13px;
+    color: #d7dde5;
+}
+.hint {
+    color: #8ea0b2;
+    font-size: 12px;
+}
+button {
+    background: #163447;
+    color: #ecf6ff;
+    border: 1px solid #25506a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 13px;
+}
+button:hover {
+    background: #1c425a;
+}
+button.secondary {
+    background: #1b2027;
+    border-color: #313c47;
+}
+canvas, svg {
+    max-width: 100%;
+    height: auto;
+}
+.panel-wrap {
+    border: 1px solid #1d2a36;
+    border-radius: 12px;
+    background: #0f151d;
+    padding: 12px;
+}
+svg text {
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+}
+.component-label {
+    fill: #dce7f1;
+    font-size: 10px;
+    font-weight: 600;
+}
+.component-sub {
+    fill: #8192a2;
+    font-size: 7px;
+}
+.dim {
+    fill: #4a6276;
+    font-size: 7px;
+}
+.terminal-text {
+    fill: #b8c6d3;
+    font-size: 6px;
+}
+.wire-base {
+    stroke: #8d98a3;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.branch-stem {
+    stroke: #8d98a3;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.wire-hit {
+    stroke: transparent;
+    stroke-width: 10;
+    fill: none;
+}
+.wire-number {
+    fill: #ffffff;
+    font-size: 8px;
+    font-weight: 700;
+}
+.wire-hidden {
+    opacity: 0;
+}
+.wire-visible {
+    opacity: 1;
+}
+.wire-group {
+    transition: opacity 0.15s ease;
+}
+[data-wire="1"] .wire-base, [data-wire="2"] .wire-base, [data-wire="3"] .wire-base,
+[data-wire="4"] .wire-base, [data-wire="5"] .wire-base, [data-wire="8"] .wire-base { stroke: #e8735a; }
+[data-wire="6"] .wire-base, [data-wire="9"] .wire-base { stroke: #5b9bd5; }
+[data-wire="7"] .wire-base { stroke: #6ab56a; }
+[data-wire="10"] .wire-base, [data-wire="12"] .wire-base { stroke: #e8a838; }
+[data-wire="11"] .wire-base, [data-wire="13"] .wire-base,
+[data-wire="19"] .wire-base, [data-wire="21"] .wire-base { stroke: #45a8d0; }
+[data-wire="14"] .wire-base, [data-wire="15"] .wire-base,
+[data-wire="16"] .wire-base, [data-wire="17"] .wire-base { stroke: #ccb840; }
+[data-wire="18"] .wire-base, [data-wire="20"] .wire-base { stroke: #a86cc0; }
+[data-wire="1"] .wire-number, [data-wire="2"] .wire-number, [data-wire="3"] .wire-number,
+[data-wire="4"] .wire-number, [data-wire="5"] .wire-number, [data-wire="8"] .wire-number { fill: #e8735a; }
+[data-wire="6"] .wire-number, [data-wire="9"] .wire-number { fill: #5b9bd5; }
+[data-wire="7"] .wire-number { fill: #6ab56a; }
+[data-wire="10"] .wire-number, [data-wire="12"] .wire-number { fill: #e8a838; }
+[data-wire="11"] .wire-number, [data-wire="13"] .wire-number,
+[data-wire="19"] .wire-number, [data-wire="21"] .wire-number { fill: #45a8d0; }
+[data-wire="14"] .wire-number, [data-wire="15"] .wire-number,
+[data-wire="16"] .wire-number, [data-wire="17"] .wire-number { fill: #ccb840; }
+[data-wire="18"] .wire-number, [data-wire="20"] .wire-number { fill: #a86cc0; }
+#wires-layer.dimmed .wire-group.wire-visible { opacity: 0.08; transition: opacity 0.15s; }
+#wires-layer.dimmed .wire-group.wire-hl { opacity: 1; }
+#wires-layer.dimmed .wire-group.wire-hl .wire-base { stroke-width: 3.5; filter: drop-shadow(0 0 4px rgba(255,255,255,0.25)); }
+.wire-group.wire-visible { cursor: pointer; }
+.legend {
+    margin-top: 14px;
+    border: 1px solid #1d2a36;
+    border-radius: 10px;
+    background: #0f151d;
+    padding: 12px;
+}
+.legend h2 {
+    color: #17c0d8;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+.legend p {
+    color: #98a8b8;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.list {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 6px 14px;
+}
+.list div {
+    font-size: 12px;
+    color: #c7d2dd;
+}
+</style>
+</head>
+<body>
+<div class="page">
+    <h1>לוח CI - בדיקת חיווט לפי שלבים</h1>
+    <div class="subtitle">החוטים מופיעים אחד־אחד לפי מספר. חץ למעלה מציג את החוט הבא, וחץ למטה מחזיר חוט אחד אחורה.</div>
+
+    <div class="toolbar">
+        <div class="status" id="status">מצב: מוצגים 0 מתוך 21 חוטים</div>
+        <button id="prevButton">חץ למטה: חוט קודם</button>
+        <button class="secondary" id="nextButton">הצג חוט הבא</button>
+        <button class="secondary" id="resetButton">איפוס</button>
+        <button class="secondary" id="showAllButton">הצג הכל</button>
+        <div class="hint">מקלדת: ArrowUp מציג חוט הבא, ArrowDown מחזיר אחורה. העבר עכבר מעל חוט כדי להדגיש אותו ולראות מאיפה לאיפה הוא מחובר.</div>
+        <div class="hint">צבעי חוטים: <span style="color:#e8735a">■</span> כוח L · <span style="color:#5b9bd5">■</span> N · <span style="color:#6ab56a">■</span> PE · <span style="color:#e8a838">■</span> 24V+ · <span style="color:#45a8d0">■</span> 24V- · <span style="color:#ccb840">■</span> אות/שדה · <span style="color:#a86cc0">■</span> בקרה</div>
+    </div>
+
+    <div class="panel-wrap">
+        <svg width="1220" height="920" viewBox="0 0 1220 920" aria-label="לוח CI עם חיווט מדורג">
+            <defs>
+                <pattern id="ductV" width="8" height="8" patternUnits="userSpaceOnUse">
+                    <line x1="4" y1="0" x2="4" y2="8" stroke="#20303d" stroke-width="0.35" />
+                </pattern>
+                <pattern id="ductH" width="8" height="8" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="4" x2="8" y2="4" stroke="#20303d" stroke-width="0.35" />
+                </pattern>
+            </defs>
+
+            <!-- enclosure -->
+            <rect x="30" y="24" width="820" height="860" rx="8" fill="#131c24" stroke="#2f6382" stroke-width="3" />
+            <rect x="42" y="36" width="796" height="836" rx="5" fill="#101820" stroke="#21445a" stroke-width="1" />
+            <text x="440" y="18" text-anchor="middle" class="dim">קופסת CI סטנדרטית</text>
+            <text x="880" y="260" transform="rotate(90 880 260)" class="dim">גובה פנימי</text>
+            <text x="440" y="900" text-anchor="middle" class="dim">רוחב פנימי</text>
+
+            <!-- mounting plate -->
+            <rect x="58" y="52" width="640" height="780" rx="3" fill="#162029" stroke="#284150" stroke-width="1.2" />
+
+            <!-- ducts -->
+            <rect x="64" y="88" width="28" height="680" rx="2" fill="#0f171e" stroke="#27465d" stroke-width="1" />
+            <rect x="64" y="88" width="28" height="680" rx="2" fill="url(#ductV)" opacity="0.45" />
+            <rect x="664" y="88" width="28" height="680" rx="2" fill="#0f171e" stroke="#27465d" stroke-width="1" />
+            <rect x="664" y="88" width="28" height="680" rx="2" fill="url(#ductV)" opacity="0.45" />
+            <rect x="92" y="88" width="572" height="20" rx="2" fill="#0f171e" stroke="#27465d" stroke-width="1" />
+            <rect x="92" y="88" width="572" height="20" rx="2" fill="url(#ductH)" opacity="0.45" />
+            <rect x="92" y="292" width="572" height="20" rx="2" fill="#0f171e" stroke="#27465d" stroke-width="1" />
+            <rect x="92" y="292" width="572" height="20" rx="2" fill="url(#ductH)" opacity="0.45" />
+            <rect x="92" y="510" width="572" height="20" rx="2" fill="#0f171e" stroke="#27465d" stroke-width="1" />
+            <rect x="92" y="510" width="572" height="20" rx="2" fill="url(#ductH)" opacity="0.45" />
+            <rect x="92" y="716" width="572" height="20" rx="2" fill="#0f171e" stroke="#27465d" stroke-width="1" />
+            <rect x="92" y="716" width="572" height="20" rx="2" fill="url(#ductH)" opacity="0.45" />
+
+            <!-- DIN rails -->
+            <rect x="100" y="188" width="556" height="10" rx="2" fill="#526877" stroke="#708795" stroke-width="0.8" />
+            <rect x="100" y="396" width="556" height="10" rx="2" fill="#526877" stroke="#708795" stroke-width="0.8" />
+            <rect x="100" y="614" width="556" height="10" rx="2" fill="#526877" stroke="#708795" stroke-width="0.8" />
+            <text x="378" y="182" text-anchor="middle" class="dim">DIN Rail 1</text>
+            <text x="378" y="390" text-anchor="middle" class="dim">DIN Rail 2</text>
+            <text x="378" y="608" text-anchor="middle" class="dim">DIN Rail 3</text>
+
+            <!-- top row: pnoz -->
+            <rect x="110" y="120" width="118" height="126" rx="5" fill="#18232d" stroke="#e1a422" stroke-width="2" />
+            <rect x="118" y="162" width="102" height="32" rx="3" fill="#111920" stroke="#23323d" stroke-width="0.8" />
+            <text x="169" y="142" text-anchor="middle" class="component-label">Y1</text>
+            <text x="169" y="154" text-anchor="middle" class="component-sub">PNOZ S6</text>
+            <text x="169" y="208" text-anchor="middle" class="component-sub">ממסר בטיחות</text>
+            <text x="169" y="220" text-anchor="middle" class="component-sub">45mm</text>
+            <text x="124" y="118" class="terminal-text">A1</text>
+            <text x="138" y="118" class="terminal-text">A2</text>
+            <text x="152" y="118" class="terminal-text">S11</text>
+            <text x="168" y="118" class="terminal-text">S12</text>
+            <text x="184" y="118" class="terminal-text">S21</text>
+            <text x="200" y="118" class="terminal-text">S22</text>
+            <text x="216" y="118" class="terminal-text">13</text>
+
+            <!-- timer -->
+            <rect x="250" y="128" width="46" height="112" rx="4" fill="#18232d" stroke="#7d42b4" stroke-width="2" />
+            <circle cx="273" cy="174" r="10" fill="#111920" stroke="#3b4d5b" stroke-width="0.8" />
+            <line x1="273" y1="164" x2="273" y2="169" stroke="#7d42b4" stroke-width="1" />
+            <text x="273" y="146" text-anchor="middle" class="component-label">TMR</text>
+            <text x="273" y="158" text-anchor="middle" class="component-sub">Timer</text>
+            <text x="273" y="200" text-anchor="middle" class="component-sub">15-18</text>
+            <text x="273" y="212" text-anchor="middle" class="component-sub">17.5mm</text>
+            <text x="256" y="126" class="terminal-text">A1</text>
+            <text x="270" y="126" class="terminal-text">15</text>
+            <text x="282" y="126" class="terminal-text">18</text>
+            <text x="258" y="248" class="terminal-text">A2</text>
+
+            <!-- slim relay -->
+            <rect x="318" y="132" width="18" height="104" rx="3" fill="#18232d" stroke="#8a6147" stroke-width="2" />
+            <rect x="322" y="168" width="10" height="18" rx="1" fill="#111920" stroke="#263640" stroke-width="0.5" />
+            <text x="327" y="148" text-anchor="middle" class="component-label" style="font-size:7px">R1</text>
+            <text x="327" y="200" text-anchor="middle" class="component-sub">9mm</text>
+            <text x="320" y="128" class="terminal-text">A1</text>
+            <text x="330" y="128" class="terminal-text">11</text>
+            <text x="320" y="246" class="terminal-text">A2</text>
+
+            <!-- double deck 24V terminals top right -->
+            <text x="485" y="112" text-anchor="middle" class="component-label">מהדקי 24V דו-קומתיים</text>
+            <text x="485" y="124" text-anchor="middle" class="component-sub">עליונים + / תחתונים -</text>
+            <g transform="translate(414 132)">
+                <rect x="0" y="24" width="20" height="34" rx="2" fill="#18232d" stroke="#677786" stroke-width="1" />
+                <rect x="1" y="2" width="18" height="18" rx="2" fill="#2a1618" stroke="#c62828" stroke-width="1" />
+                <rect x="1" y="60" width="18" height="18" rx="2" fill="#152131" stroke="#1565c0" stroke-width="1" />
+                <text x="10" y="16" text-anchor="middle" class="terminal-text">24+</text>
+                <text x="10" y="74" text-anchor="middle" class="terminal-text">24-</text>
+            </g>
+            <g transform="translate(438 132)">
+                <rect x="0" y="24" width="20" height="34" rx="2" fill="#18232d" stroke="#677786" stroke-width="1" />
+                <rect x="1" y="2" width="18" height="18" rx="2" fill="#2a1618" stroke="#c62828" stroke-width="1" />
+                <rect x="1" y="60" width="18" height="18" rx="2" fill="#152131" stroke="#1565c0" stroke-width="1" />
+                <text x="10" y="16" text-anchor="middle" class="terminal-text">24+</text>
+                <text x="10" y="74" text-anchor="middle" class="terminal-text">24-</text>
+            </g>
+            <g transform="translate(462 132)">
+                <rect x="0" y="24" width="20" height="34" rx="2" fill="#18232d" stroke="#677786" stroke-width="1" />
+                <rect x="1" y="2" width="18" height="18" rx="2" fill="#2a1618" stroke="#c62828" stroke-width="1" />
+                <rect x="1" y="60" width="18" height="18" rx="2" fill="#152131" stroke="#1565c0" stroke-width="1" />
+                <text x="10" y="16" text-anchor="middle" class="terminal-text">24+</text>
+                <text x="10" y="74" text-anchor="middle" class="terminal-text">24-</text>
+            </g>
+            <g transform="translate(486 132)">
+                <rect x="0" y="24" width="20" height="34" rx="2" fill="#18232d" stroke="#677786" stroke-width="1" />
+                <rect x="1" y="2" width="18" height="18" rx="2" fill="#2a1618" stroke="#c62828" stroke-width="1" />
+                <rect x="1" y="60" width="18" height="18" rx="2" fill="#152131" stroke="#1565c0" stroke-width="1" />
+                <text x="10" y="16" text-anchor="middle" class="terminal-text">24+</text>
+                <text x="10" y="74" text-anchor="middle" class="terminal-text">24-</text>
+            </g>
+
+            <!-- terminals 1-4 below -->
+            <text x="584" y="112" text-anchor="middle" class="component-label">מהדקי שדה 1-4</text>
+            <text x="584" y="124" text-anchor="middle" class="component-sub">לא פס 24V ולא זוג לחצנים ישיר</text>
+            <g transform="translate(546 140)">
+                <rect x="0" y="0" width="18" height="38" rx="2" fill="#18232d" stroke="#6d7780" stroke-width="1" />
+                <text x="9" y="50" text-anchor="middle" class="terminal-text">1</text>
+            </g>
+            <g transform="translate(570 140)">
+                <rect x="0" y="0" width="18" height="38" rx="2" fill="#18232d" stroke="#6d7780" stroke-width="1" />
+                <text x="9" y="50" text-anchor="middle" class="terminal-text">2</text>
+            </g>
+            <g transform="translate(594 140)">
+                <rect x="0" y="0" width="18" height="38" rx="2" fill="#18232d" stroke="#6d7780" stroke-width="1" />
+                <text x="9" y="50" text-anchor="middle" class="terminal-text">3</text>
+            </g>
+            <g transform="translate(618 140)">
+                <rect x="0" y="0" width="18" height="38" rx="2" fill="#18232d" stroke="#6d7780" stroke-width="1" />
+                <text x="9" y="50" text-anchor="middle" class="terminal-text">4</text>
+            </g>
+
+            <!-- middle row: contactor -->
+            <rect x="236" y="330" width="120" height="134" rx="5" fill="#18232d" stroke="#2aa4ab" stroke-width="2" />
+            <rect x="246" y="376" width="100" height="36" rx="3" fill="#111920" stroke="#24343d" stroke-width="0.8" />
+            <text x="296" y="354" text-anchor="middle" class="component-label">C1</text>
+            <text x="296" y="366" text-anchor="middle" class="component-sub">DILM9</text>
+            <text x="296" y="424" text-anchor="middle" class="component-sub">4kW</text>
+            <text x="296" y="436" text-anchor="middle" class="component-sub">רק קוטב אחד מחווט</text>
+            <text x="256" y="328" class="terminal-text">1/L1</text>
+            <text x="256" y="476" class="terminal-text">2/T1</text>
+            <text x="230" y="422" class="terminal-text">A1</text>
+            <text x="230" y="434" class="terminal-text">A2</text>
+            <text x="354" y="422" class="terminal-text">13</text>
+            <text x="354" y="434" class="terminal-text">14</text>
+            <rect x="254" y="328" width="14" height="8" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="254" y="456" width="14" height="8" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="236" y="416" width="8" height="6" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="236" y="428" width="8" height="6" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="348" y="416" width="8" height="6" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="348" y="428" width="8" height="6" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+
+            <!-- bottom row left: pkzm -->
+            <rect x="100" y="546" width="120" height="134" rx="5" fill="#18232d" stroke="#ce4b41" stroke-width="2" />
+            <rect x="110" y="594" width="100" height="36" rx="3" fill="#111920" stroke="#24343d" stroke-width="0.8" />
+            <circle cx="160" cy="612" r="15" fill="#101820" stroke="#425462" stroke-width="0.8" />
+            <circle cx="160" cy="612" r="8" fill="#0c1117" stroke="#5a6874" stroke-width="0.6" />
+            <line x1="160" y1="603" x2="160" y2="596" stroke="#ce4b41" stroke-width="1.1" />
+            <text x="160" y="570" text-anchor="middle" class="component-label">Q1</text>
+            <text x="160" y="582" text-anchor="middle" class="component-sub">PKZM</text>
+            <text x="160" y="646" text-anchor="middle" class="component-sub">16A</text>
+            <text x="160" y="658" text-anchor="middle" class="component-sub">שרשור 2-3 , 4-5</text>
+            <text x="118" y="544" class="terminal-text">1</text>
+            <text x="140" y="544" class="terminal-text">3</text>
+            <text x="162" y="544" class="terminal-text">5</text>
+            <text x="118" y="692" class="terminal-text">2</text>
+            <text x="140" y="692" class="terminal-text">4</text>
+            <text x="162" y="692" class="terminal-text">6</text>
+            <rect x="116" y="546" width="12" height="7" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="138" y="546" width="12" height="7" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="160" y="546" width="12" height="7" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="116" y="672" width="12" height="7" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="138" y="672" width="12" height="7" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="160" y="672" width="12" height="7" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+
+            <!-- bottom row right: power supply -->
+            <rect x="470" y="546" width="126" height="134" rx="5" fill="#18232d" stroke="#1ca58f" stroke-width="2" />
+            <rect x="480" y="592" width="106" height="36" rx="3" fill="#111920" stroke="#24343d" stroke-width="0.8" />
+            <circle cx="492" cy="582" r="3" fill="#3ba56f" opacity="0.7" />
+            <text x="533" y="570" text-anchor="middle" class="component-label">T1</text>
+            <text x="533" y="582" text-anchor="middle" class="component-sub">Power Supply</text>
+            <text x="533" y="640" text-anchor="middle" class="component-sub">230VAC / 24VDC</text>
+            <text x="498" y="544" class="terminal-text">L</text>
+            <text x="530" y="544" class="terminal-text">N</text>
+            <text x="498" y="692" class="terminal-text">+24</text>
+            <text x="526" y="692" class="terminal-text">0V</text>
+            <text x="554" y="692" class="terminal-text">+24</text>
+            <text x="580" y="692" class="terminal-text">0V</text>
+            <rect x="496" y="546" width="12" height="7" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="528" y="546" width="12" height="7" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="496" y="672" width="12" height="7" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="524" y="672" width="12" height="7" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="552" y="672" width="12" height="7" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+            <rect x="578" y="672" width="12" height="7" rx="1" fill="#1a2636" stroke="#59656f" stroke-width="0.5" />
+
+            <!-- cable entries -->
+            <rect x="138" y="792" width="170" height="18" rx="4" fill="#121a22" stroke="#334a5c" stroke-width="1" />
+            <text x="223" y="824" text-anchor="middle" class="component-sub">הזנה מלמטה</text>
+            <circle cx="170" cy="801" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="210" cy="801" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="250" cy="801" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <text x="170" y="816" text-anchor="middle" class="terminal-text">L</text>
+            <text x="210" y="816" text-anchor="middle" class="terminal-text">N</text>
+            <text x="250" y="816" text-anchor="middle" class="terminal-text">PE</text>
+
+            <rect x="456" y="54" width="188" height="18" rx="4" fill="#121a22" stroke="#334a5c" stroke-width="1" />
+            <text x="557" y="48" text-anchor="middle" class="component-sub">כבלי שדה מלמעלה</text>
+            <circle cx="484" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="510" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="536" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="562" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="588" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="614" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="640" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <text x="484" y="78" text-anchor="middle" class="terminal-text">M-L</text>
+            <text x="510" y="78" text-anchor="middle" class="terminal-text">M-N</text>
+            <text x="536" y="78" text-anchor="middle" class="terminal-text">PE</text>
+            <text x="562" y="78" text-anchor="middle" class="terminal-text">S1</text>
+            <text x="588" y="78" text-anchor="middle" class="terminal-text">S1</text>
+            <text x="614" y="78" text-anchor="middle" class="terminal-text">S2</text>
+            <text x="640" y="78" text-anchor="middle" class="terminal-text">S2</text>
+
+            <!-- branch stems -->
+            <g id="branch-stems">
+                <path class="branch-stem" d="M 170 801 L 178 790" stroke="#e8735a" />
+                <path class="branch-stem" d="M 210 801 L 218 790" stroke="#5b9bd5" />
+                <path class="branch-stem" d="M 424 141 L 414 152" stroke="#e8a838" />
+            </g>
+
+            <!-- wires -->
+            <g id="wires-layer">
+                <g class="wire-group wire-hidden" data-wire="1"><path class="wire-base" d="M 178 790 L 176 728 L 74 728 L 74 548 L 122 548"/><text class="wire-number" x="74" y="646">1</text></g>
+                <g class="wire-group wire-hidden" data-wire="2"><path class="wire-base" d="M 128 676 L 134 676 L 134 564 L 144 564 L 144 548"/><text class="wire-number" x="132" y="614">2</text></g>
+                <g class="wire-group wire-hidden" data-wire="3"><path class="wire-base" d="M 150 676 L 156 676 L 156 556 L 166 556 L 166 548"/><text class="wire-number" x="154" y="606">3</text></g>
+                <g class="wire-group wire-hidden" data-wire="4"><path class="wire-base" d="M 166 679 L 166 720 L 82 720 L 82 303 L 256 303 L 256 336"/><text class="wire-number" x="82" y="500">4</text><text class="wire-number" x="215" y="300">4</text></g>
+                <g class="wire-group wire-hidden" data-wire="5"><path class="wire-base" d="M 260 464 L 260 516 L 666 516 L 666 94 L 484 94 L 484 63"/><text class="wire-number" x="666" y="298">5</text><text class="wire-number" x="530" y="91">5</text></g>
+                <g class="wire-group wire-hidden" data-wire="6"><path class="wire-base" d="M 218 790 L 216 732 L 668 732 L 668 102 L 510 102 L 510 63"/><text class="wire-number" x="668" y="342">6</text></g>
+                <g class="wire-group wire-hidden" data-wire="7"><path class="wire-base" d="M 250 801 L 250 736 L 670 736 L 670 110 L 536 110 L 536 63"/><text class="wire-number" x="670" y="386">7</text></g>
+                <g class="wire-group wire-hidden" data-wire="8"><path class="wire-base" d="M 178 790 L 182 718 L 682 718 L 682 524 L 500 524 L 500 548"/><text class="wire-number" x="682" y="624">8</text></g>
+                <g class="wire-group wire-hidden" data-wire="9"><path class="wire-base" d="M 218 790 L 222 722 L 684 722 L 684 520 L 530 520 L 530 548"/><text class="wire-number" x="684" y="608">9</text></g>
+                <g class="wire-group wire-hidden" data-wire="10"><path class="wire-base" d="M 498 679 L 498 726 L 672 726 L 672 152 L 414 152"/><text class="wire-number" x="672" y="438">10</text></g>
+                <g class="wire-group wire-hidden" data-wire="11"><path class="wire-base" d="M 526 679 L 526 730 L 674 730 L 674 248 L 404 248 L 404 201 L 424 201"/><text class="wire-number" x="674" y="460">11</text></g>
+                <g class="wire-group wire-hidden" data-wire="12"><path class="wire-base" d="M 414 152 L 414 90 L 90 90 L 90 124 L 116 124"/><text class="wire-number" x="244" y="87">12</text></g>
+                <g class="wire-group wire-hidden" data-wire="13"><path class="wire-base" d="M 138 120 L 138 92 L 676 92 L 676 252 L 428 252 L 428 201 L 448 201"/><text class="wire-number" x="676" y="154">13</text></g>
+                <g class="wire-group wire-hidden" data-wire="14"><path class="wire-base" d="M 220 120 L 220 100 L 555 100 L 555 140"/><text class="wire-number" x="380" y="97">14</text></g>
+                <g class="wire-group wire-hidden" data-wire="15"><path class="wire-base" d="M 579 140 L 680 140 L 680 300 L 148 300 L 148 120"/><text class="wire-number" x="680" y="220">15</text><text class="wire-number" x="200" y="297">15</text></g>
+                <g class="wire-group wire-hidden" data-wire="16"><path class="wire-base" d="M 472 141 L 472 106 L 686 106 L 686 144 L 603 144"/><text class="wire-number" x="618" y="103">16</text></g>
+                <g class="wire-group wire-hidden" data-wire="17"><path class="wire-base" d="M 627 140 L 688 140 L 688 309 L 196 309 L 196 120"/><text class="wire-number" x="688" y="262">17</text><text class="wire-number" x="240" y="306">17</text></g>
+                <g class="wire-group wire-hidden" data-wire="18"><path class="wire-base" d="M 210 246 L 210 294 L 76 294 L 76 98 L 262 98 L 262 132"/><text class="wire-number" x="76" y="248">18</text></g>
+                <g class="wire-group wire-hidden" data-wire="19"><path class="wire-base" d="M 258 240 L 258 306 L 690 306 L 690 256 L 452 256 L 452 201 L 472 201"/><text class="wire-number" x="690" y="286">19</text></g>
+                <g class="wire-group wire-hidden" data-wire="20"><path class="wire-base" d="M 286 132 L 286 96 L 70 96 L 70 297 L 228 297 L 228 419"/><text class="wire-number" x="70" y="208">20</text></g>
+                <g class="wire-group wire-hidden" data-wire="21"><path class="wire-base" d="M 236 431 L 86 431 L 86 528 L 664 528 L 664 260 L 476 260 L 476 201 L 496 201"/><text class="wire-number" x="664" y="500">21</text><text class="wire-number" x="130" y="525">21</text></g>
+            </g>
+        </svg>
+    </div>
+
+    <div class="legend">
+        <h2>מה קיים כרגע</h2>
+        <p>בניגוד לגרסאות הקודמות, כאן החיווט בנוי לבקרה על חוט בודד: המפסק הראשי מחווט בפועל רק על מסלול כוח אחד, וגם במגען מחווט קוטב כוח אחד בלבד. יתר החיווט הוא חיווט בקרה 24V לפי הסידור שביקשת, כדי שתוכל לעבור חוט־חוט ולכוון אותי בהמשך.</p>
+        <div class="list">
+            <div>שורה עליונה: PNOZ S6, טיימר, ממסר 9mm</div>
+            <div>ימין עליון: 4 מהדקי 24V דו־קומתיים</div>
+            <div>מתחתיהם: מהדקי שדה 1 עד 4</div>
+            <div>שורה אמצעית: DILM9</div>
+            <div>שורה תחתונה שמאל: PKZM 16A</div>
+            <div>שורה תחתונה ימין: ספק 24V</div>
+            <div>הזנה: חד־פאזית מלמטה</div>
+            <div>שאר הכבלים: מלמעלה</div>
+            <div>שרשרת כוח: L → Q1/1 → 2-3 → 4-5 → 6 → C1 → מנוע</div>
+            <div>הערה: לפי הסכמה, S1 ו-S2 מצוירים ישירות על ערוצי Y1 ולא כמהדקים 1-4</div>
+        </div>
+    </div>
+</div>
+
+<script>
+const wireGroups = Array.from(document.querySelectorAll('.wire-group'));
+const statusEl = document.getElementById('status');
+const prevButton = document.getElementById('prevButton');
+const nextButton = document.getElementById('nextButton');
+const resetButton = document.getElementById('resetButton');
+const showAllButton = document.getElementById('showAllButton');
+let visibleCount = 0;
+
+function updateStatus() {
+    statusEl.textContent = `מצב: מוצגים ${visibleCount} מתוך ${wireGroups.length} חוטים`;
+}
+
+function setVisible(count) {
+    visibleCount = Math.max(0, Math.min(count, wireGroups.length));
+    wireGroups.forEach((group, index) => {
+        group.classList.toggle('wire-visible', index < visibleCount);
+        group.classList.toggle('wire-hidden', index >= visibleCount);
+    });
+    updateStatus();
+}
+
+function showNextWire() {
+    if (visibleCount < wireGroups.length) {
+        setVisible(visibleCount + 1);
+    }
+}
+
+function showPreviousWire() {
+    if (visibleCount > 0) {
+        setVisible(visibleCount - 1);
+    }
+}
+
+prevButton.addEventListener('click', showPreviousWire);
+nextButton.addEventListener('click', showNextWire);
+resetButton.addEventListener('click', () => setVisible(0));
+showAllButton.addEventListener('click', () => setVisible(wireGroups.length));
+
+window.addEventListener('keydown', (event) => {
+    if (event.code === 'ArrowUp') {
+        event.preventDefault();
+        showNextWire();
+    }
+    if (event.code === 'ArrowDown') {
+        event.preventDefault();
+        showPreviousWire();
+    }
+});
+
+const wireInfo = {
+    1: 'L (הזנה) → Q1/1 (PKZM)',
+    2: 'Q1/2 → Q1/3 (גשר)',
+    3: 'Q1/4 → Q1/5 (גשר)',
+    4: 'Q1/6 → C1/1-L1 (מגען)',
+    5: 'C1/2-T1 → M-L (מנוע)',
+    6: 'N (הזנה) → M-N (מנוע)',
+    7: 'PE (הזנה) → PE (שדה)',
+    8: 'L (הזנה) → T1/L (ספק)',
+    9: 'N (הזנה) → T1/N (ספק)',
+    10: 'T1/+24 → 24+ מהדק 1',
+    11: 'T1/0V → 24- מהדק 1',
+    12: '24+ מהדק 1 → Y1/A1',
+    13: 'Y1/A2 → 24- מהדק 2',
+    14: 'Y1/13 (מוצא) → מהדק שדה 1',
+    15: 'מהדק שדה 2 → Y1/S12',
+    16: '24+ מהדק 3 → מהדק שדה 3',
+    17: 'מהדק שדה 4 → Y1/S22',
+    18: 'TMR/A2 → TMR/A1 (לולאת הזנה)',
+    19: 'TMR/18 (מוצא) → 24- מהדק 3',
+    20: 'TMR/15 → C1/A1 (סליל מגען)',
+    21: 'C1/A2 → 24- מהדק 4'
+};
+
+const wiresLayer = document.getElementById('wires-layer');
+wireGroups.forEach(g => {
+    const base = g.querySelector('.wire-base');
+    if (base) {
+        const hit = base.cloneNode();
+        hit.setAttribute('class', 'wire-hit');
+        g.insertBefore(hit, base);
+    }
+    g.addEventListener('mouseenter', () => {
+        if (!g.classList.contains('wire-visible')) return;
+        wiresLayer.classList.add('dimmed');
+        g.classList.add('wire-hl');
+        const wn = g.dataset.wire;
+        statusEl.textContent = `חוט ${wn}: ${wireInfo[wn] || ''}`;
+    });
+    g.addEventListener('mouseleave', () => {
+        wiresLayer.classList.remove('dimmed');
+        g.classList.remove('wire-hl');
+        updateStatus();
+    });
+});
+
+setVisible(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>לוח CI - בדיקת חיווט v2</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    background: #0b1016;
+    color: #d7dde5;
+    min-height: 100vh;
+    padding: 18px;
+}
+.page {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    gap: 14px;
+}
+.main-col {
+    flex: 1;
+    min-width: 0;
+}
+h1 {
+    color: #17c0d8;
+    font-size: 22px;
+    margin-bottom: 4px;
+}
+.subtitle {
+    color: #72808e;
+    font-size: 12px;
+    margin-bottom: 14px;
+}
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid #1d2a36;
+    border-radius: 10px;
+    background: #0f151d;
+}
+.status {
+    min-width: 220px;
+    font-size: 13px;
+    color: #d7dde5;
+}
+.hint {
+    color: #8ea0b2;
+    font-size: 12px;
+}
+button {
+    background: #163447;
+    color: #ecf6ff;
+    border: 1px solid #25506a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 13px;
+}
+button:hover {
+    background: #1c425a;
+}
+button.secondary {
+    background: #1b2027;
+    border-color: #313c47;
+}
+canvas, svg {
+    max-width: 100%;
+    height: auto;
+}
+.panel-wrap {
+    border: 1px solid #1d2a36;
+    border-radius: 12px;
+    background: #0f151d;
+    padding: 12px;
+}
+svg text {
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+}
+.component-label {
+    fill: #dce7f1;
+    font-size: 10px;
+    font-weight: 600;
+}
+.component-sub {
+    fill: #8192a2;
+    font-size: 7px;
+}
+.dim {
+    fill: #4a6276;
+    font-size: 7px;
+}
+.terminal-text {
+    fill: #b8c6d3;
+    font-size: 6px;
+}
+.wire-base {
+    stroke: #8d98a3;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.branch-stem {
+    stroke: #8d98a3;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.wire-hit {
+    stroke: transparent;
+    stroke-width: 10;
+    fill: none;
+}
+.wire-number {
+    fill: #ffffff;
+    font-size: 8px;
+    font-weight: 700;
+}
+.wire-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.wire-visible {
+    opacity: 1;
+}
+.wire-group {
+    transition: opacity 0.15s ease;
+}
+/* color coding by function */
+[data-wire="1"] .wire-base, [data-wire="2"] .wire-base, [data-wire="3"] .wire-base,
+[data-wire="4"] .wire-base, [data-wire="5"] .wire-base { stroke: #e8735a; }
+[data-wire="8"] .wire-base, [data-wire="22"] .wire-base { stroke: #e8735a; }
+[data-wire="6"] .wire-base, [data-wire="9"] .wire-base, [data-wire="23"] .wire-base { stroke: #5b9bd5; }
+[data-wire="7"] .wire-base { stroke: #6ab56a; }
+[data-wire="10"] .wire-base, [data-wire="12"] .wire-base { stroke: #e8a838; }
+[data-wire="11"] .wire-base, [data-wire="13"] .wire-base,
+[data-wire="19"] .wire-base, [data-wire="21"] .wire-base { stroke: #45a8d0; }
+[data-wire="14"] .wire-base, [data-wire="15"] .wire-base,
+[data-wire="16"] .wire-base, [data-wire="17"] .wire-base { stroke: #ccb840; }
+[data-wire="18"] .wire-base, [data-wire="20"] .wire-base { stroke: #a86cc0; }
+/* number colors match */
+[data-wire="1"] .wire-number, [data-wire="2"] .wire-number, [data-wire="3"] .wire-number,
+[data-wire="4"] .wire-number, [data-wire="5"] .wire-number { fill: #e8735a; }
+[data-wire="8"] .wire-number, [data-wire="22"] .wire-number { fill: #e8735a; }
+[data-wire="6"] .wire-number, [data-wire="9"] .wire-number, [data-wire="23"] .wire-number { fill: #5b9bd5; }
+[data-wire="7"] .wire-number { fill: #6ab56a; }
+[data-wire="10"] .wire-number, [data-wire="12"] .wire-number { fill: #e8a838; }
+[data-wire="11"] .wire-number, [data-wire="13"] .wire-number,
+[data-wire="19"] .wire-number, [data-wire="21"] .wire-number { fill: #45a8d0; }
+[data-wire="14"] .wire-number, [data-wire="15"] .wire-number,
+[data-wire="16"] .wire-number, [data-wire="17"] .wire-number { fill: #ccb840; }
+[data-wire="18"] .wire-number, [data-wire="20"] .wire-number { fill: #a86cc0; }
+/* dimming on hover */
+#wires-layer.dimmed .wire-group.wire-visible { opacity: 0.08; transition: opacity 0.15s; }
+#wires-layer.dimmed .wire-group.wire-hl { opacity: 1; }
+#wires-layer.dimmed .wire-group.wire-hl .wire-base { stroke-width: 3.5; filter: drop-shadow(0 0 4px rgba(255,255,255,0.25)); }
+.wire-group.wire-visible { cursor: pointer; }
+
+/* side panel toggle buttons */
+.side-panel {
+    width: 260px;
+    min-width: 260px;
+    border: 1px solid #1d2a36;
+    border-radius: 10px;
+    background: #0f151d;
+    padding: 12px;
+    max-height: calc(100vh - 36px);
+    overflow-y: auto;
+    position: sticky;
+    top: 18px;
+}
+.side-panel h2 {
+    color: #17c0d8;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+.wire-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 10px;
+    margin-bottom: 4px;
+    border: 1px solid #1d2a36;
+    border-radius: 6px;
+    background: #121a22;
+    color: #8ea0b2;
+    font-size: 12px;
+    cursor: pointer;
+    text-align: right;
+    transition: all 0.15s;
+}
+.wire-btn:hover {
+    background: #1a2838;
+    border-color: #2a4a60;
+}
+.wire-btn.active {
+    background: #162a38;
+    border-color: #3a7a9a;
+    color: #d7dde5;
+}
+.wire-btn .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.wire-btn .num {
+    font-weight: 700;
+    min-width: 22px;
+}
+.wire-btn .desc {
+    flex: 1;
+    font-size: 11px;
+}
+.side-btns {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.side-btns button {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 11px;
+}
+</style>
+</head>
+<body>
+<div class="page">
+    <div class="main-col">
+    <h1>לוח CI - בדיקת חיווט לפי שלבים</h1>
+    <div class="subtitle">2 פסי DIN. מאמ"ט Q2 להגנת ספק. מגען C1 בשורה עליונה. כפתורים בצד לכל חוט.</div>
+
+    <div class="toolbar">
+        <div class="status" id="status">מצב: מוצגים 0 מתוך 23 חוטים</div>
+        <button id="prevButton">&#9660; חוט קודם</button>
+        <button class="secondary" id="nextButton">&#9650; חוט הבא</button>
+        <button class="secondary" id="resetButton">איפוס</button>
+        <button class="secondary" id="showAllButton">הצג הכל</button>
+        <div class="hint">מקלדת: ArrowUp חוט הבא, ArrowDown חוט קודם. העבר עכבר לזיהוי. כפתורים בצד מדליקים/מכבים כל חוט בנפרד.</div>
+        <div class="hint">צבעי חוטים: <span style="color:#e8735a">■</span> כוח L · <span style="color:#5b9bd5">■</span> N · <span style="color:#6ab56a">■</span> PE · <span style="color:#e8a838">■</span> 24V+ · <span style="color:#45a8d0">■</span> 24V- · <span style="color:#ccb840">■</span> אות/שדה · <span style="color:#a86cc0">■</span> בקרה</div>
+    </div>
+
+    <div class="panel-wrap">
+        <svg width="960" height="800" viewBox="0 0 960 800" aria-label="לוח CI עם חיווט מדורג">
+            <defs>
+                <pattern id="ductV" width="8" height="8" patternUnits="userSpaceOnUse">
+                    <line x1="4" y1="0" x2="4" y2="8" stroke="#20303d" stroke-width="0.35" />
+                </pattern>
+                <pattern id="ductH" width="8" height="8" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="4" x2="8" y2="4" stroke="#20303d" stroke-width="0.35" />
+                </pattern>
+            </defs>
+
+            <!-- enclosure -->
+            <rect x="20" y="14" width="920" height="770" rx="8" fill="#131c24" stroke="#2f6382" stroke-width="3" />
+            <rect x="32" y="26" width="896" height="746" rx="5" fill="#101820" stroke="#21445a" stroke-width="1" />
+
+            <!-- mounting plate -->
+            <rect x="42" y="42" width="826" height="700" rx="3" fill="#162029" stroke="#284150" stroke-width="1.2" />
+
+            <!-- ducts: left vertical (x=48-92, 44px wide, 7 wires @ 6px) -->
+            <rect x="48" y="58" width="44" height="542" rx="2" fill="#0f171e" stroke="#27465d" stroke-width="1" />
+            <rect x="48" y="58" width="44" height="542" rx="2" fill="url(#ductV)" opacity="0.45" />
+            <!-- ducts: right vertical (x=722-808, 86px wide, 13 wires @ 6px) -->
+            <rect x="722" y="58" width="86" height="542" rx="2" fill="#0f171e" stroke="#27465d" stroke-width="1" />
+            <rect x="722" y="58" width="86" height="542" rx="2" fill="url(#ductV)" opacity="0.45" />
+            <!-- ducts: horizontal top (y=58-110, 52px, 10 wires @ 5px) -->
+            <rect x="92" y="58" width="630" height="52" rx="2" fill="#0f171e" stroke="#27465d" stroke-width="1" />
+            <rect x="92" y="58" width="630" height="52" rx="2" fill="url(#ductH)" opacity="0.45" />
+            <!-- ducts: horizontal middle (y=272-312, 40px, 6 wires @ 6px) -->
+            <rect x="92" y="272" width="630" height="40" rx="2" fill="#0f171e" stroke="#27465d" stroke-width="1" />
+            <rect x="92" y="272" width="630" height="40" rx="2" fill="url(#ductH)" opacity="0.45" />
+            <!-- ducts: horizontal bottom (y=520-586, 66px, 11 wires @ 5px) -->
+            <rect x="92" y="520" width="630" height="66" rx="2" fill="#0f171e" stroke="#27465d" stroke-width="1" />
+            <rect x="92" y="520" width="630" height="66" rx="2" fill="url(#ductH)" opacity="0.45" />
+
+            <!-- DIN Rail 1 -->
+            <rect x="100" y="186" width="620" height="10" rx="2" fill="#526877" stroke="#708795" stroke-width="0.8" />
+            <text x="410" y="180" text-anchor="middle" class="dim">DIN Rail 1</text>
+            <!-- DIN Rail 2 -->
+            <rect x="100" y="440" width="620" height="10" rx="2" fill="#526877" stroke="#708795" stroke-width="0.8" />
+            <text x="410" y="434" text-anchor="middle" class="dim">DIN Rail 2</text>
+
+            <!-- ===== DIN RAIL 1 components ===== -->
+
+            <!-- Y1: PNOZ S6 — realistic Pilz safety relay -->
+            <g id="comp-Y1">
+                <!-- main body — Pilz yellow -->
+                <rect x="110" y="118" width="118" height="126" rx="3" fill="#e8c832" stroke="#c8a820" stroke-width="1.5" />
+                <!-- top dark header band -->
+                <rect x="110" y="118" width="118" height="18" rx="3" fill="#1a1a1a" />
+                <rect x="110" y="130" width="118" height="6" fill="#1a1a1a" />
+                <!-- PILZ branding area -->
+                <rect x="114" y="119" width="32" height="14" rx="2" fill="#ffffff" />
+                <text x="130" y="130" text-anchor="middle" fill="#003380" font-size="7" font-weight="900">PILZ</text>
+                <!-- model label -->
+                <text x="169" y="130" text-anchor="middle" fill="#cccccc" font-size="5.5" font-weight="700">PNOZ s6</text>
+                <!-- LED indicators panel -->
+                <rect x="116" y="140" width="106" height="24" rx="2" fill="#f5e880" stroke="#c8a820" stroke-width="0.5" />
+                <!-- 4 channel LEDs -->
+                <circle cx="132" cy="148" r="3" fill="#1a3a1a" stroke="#0a0a0a" stroke-width="0.5" />
+                <circle cx="148" cy="148" r="3" fill="#1a3a1a" stroke="#0a0a0a" stroke-width="0.5" />
+                <circle cx="164" cy="148" r="3" fill="#3a1a1a" stroke="#0a0a0a" stroke-width="0.5" />
+                <circle cx="180" cy="148" r="3" fill="#3a1a1a" stroke="#0a0a0a" stroke-width="0.5" />
+                <text x="132" y="157" text-anchor="middle" fill="#333" font-size="3.5">CH.1</text>
+                <text x="148" y="157" text-anchor="middle" fill="#333" font-size="3.5">CH.2</text>
+                <text x="164" y="157" text-anchor="middle" fill="#333" font-size="3.5">FAULT</text>
+                <text x="180" y="157" text-anchor="middle" fill="#333" font-size="3.5">PWR</text>
+                <!-- status LED -->
+                <circle cx="200" cy="148" r="3.5" fill="#2e7d32" stroke="#1b5e20" stroke-width="0.6" opacity="0.8" />
+                <!-- main label area -->
+                <rect x="116" y="168" width="106" height="40" rx="2" fill="#f0dc60" stroke="#c8a820" stroke-width="0.5" />
+                <text x="169" y="180" text-anchor="middle" fill="#1a1a1a" font-size="8" font-weight="700">PNOZ S6</text>
+                <text x="169" y="190" text-anchor="middle" fill="#333" font-size="5">750106</text>
+                <text x="169" y="200" text-anchor="middle" fill="#333" font-size="4.5">24VDC 3n/o 1n/c</text>
+                <!-- DIN clip at bottom -->
+                <rect x="145" y="230" width="48" height="14" rx="1" fill="#888" stroke="#666" stroke-width="0.5" />
+                <rect x="150" y="233" width="38" height="8" rx="1" fill="#aaa" stroke="#888" stroke-width="0.3" />
+                <!-- terminal screws top -->
+                <circle cx="124" cy="120" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="122" y1="120" x2="126" y2="120" stroke="#666" stroke-width="0.6" />
+                <circle cx="138" cy="120" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="136" y1="120" x2="140" y2="120" stroke="#666" stroke-width="0.6" />
+                <circle cx="154" cy="120" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="152" y1="120" x2="156" y2="120" stroke="#666" stroke-width="0.6" />
+                <circle cx="169" cy="120" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="167" y1="120" x2="171" y2="120" stroke="#666" stroke-width="0.6" />
+                <circle cx="184" cy="120" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="182" y1="120" x2="186" y2="120" stroke="#666" stroke-width="0.6" />
+                <circle cx="200" cy="120" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="198" y1="120" x2="202" y2="120" stroke="#666" stroke-width="0.6" />
+                <circle cx="220" cy="120" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="218" y1="120" x2="222" y2="120" stroke="#666" stroke-width="0.6" />
+                <!-- terminal labels -->
+                <text x="124" y="114" text-anchor="middle" class="terminal-text" fill="#555">A1</text>
+                <text x="138" y="114" text-anchor="middle" class="terminal-text" fill="#555">A2</text>
+                <text x="154" y="114" text-anchor="middle" class="terminal-text" fill="#555">S11</text>
+                <text x="169" y="114" text-anchor="middle" class="terminal-text" fill="#555">S12</text>
+                <text x="184" y="114" text-anchor="middle" class="terminal-text" fill="#555">S21</text>
+                <text x="200" y="114" text-anchor="middle" class="terminal-text" fill="#555">S22</text>
+                <text x="220" y="114" text-anchor="middle" class="terminal-text" fill="#555">13</text>
+                <!-- bottom terminals -->
+                <text x="124" y="252" class="terminal-text">Y1</text>
+                <text x="148" y="252" class="terminal-text">Y2</text>
+                <!-- component ID -->
+                <text x="169" y="222" text-anchor="middle" fill="#222" font-size="6" font-weight="600">Y1</text>
+            </g>
+
+            <!-- TMR: Timer — realistic industrial timer -->
+            <g id="comp-TMR">
+                <!-- body -->
+                <rect x="248" y="126" width="46" height="112" rx="2" fill="#2a2a2a" stroke="#444" stroke-width="1.2" />
+                <!-- top section lighter -->
+                <rect x="250" y="128" width="42" height="20" rx="1" fill="#333" />
+                <!-- brand area -->
+                <rect x="252" y="130" width="38" height="8" rx="1" fill="#3a3a3a" />
+                <text x="271" y="137" text-anchor="middle" fill="#aaa" font-size="4" font-weight="600">TIMER</text>
+                <!-- dial/potentiometer -->
+                <circle cx="271" cy="168" r="13" fill="#1a1a1a" stroke="#555" stroke-width="1" />
+                <circle cx="271" cy="168" r="10" fill="linear" stroke="#666" stroke-width="0.5" />
+                <circle cx="271" cy="168" r="10" fill="#222" stroke="#555" stroke-width="0.8" />
+                <!-- dial markings -->
+                <line x1="271" y1="158" x2="271" y2="161" stroke="#aaa" stroke-width="0.5" />
+                <line x1="278" y1="162" x2="276" y2="164" stroke="#aaa" stroke-width="0.5" />
+                <line x1="281" y1="168" x2="278" y2="168" stroke="#aaa" stroke-width="0.5" />
+                <line x1="278" y1="174" x2="276" y2="172" stroke="#aaa" stroke-width="0.5" />
+                <line x1="264" y1="162" x2="266" y2="164" stroke="#aaa" stroke-width="0.5" />
+                <line x1="261" y1="168" x2="264" y2="168" stroke="#aaa" stroke-width="0.5" />
+                <!-- pointer -->
+                <line x1="271" y1="168" x2="271" y2="160" stroke="#ff6600" stroke-width="1.2" stroke-linecap="round" />
+                <circle cx="271" cy="168" r="2" fill="#444" stroke="#666" stroke-width="0.5" />
+                <!-- scale labels -->
+                <text x="271" y="150" text-anchor="middle" fill="#888" font-size="3">0.1-10s</text>
+                <!-- mode switch -->
+                <rect x="256" y="188" width="30" height="8" rx="1" fill="#1a1a1a" stroke="#444" stroke-width="0.5" />
+                <rect x="258" y="189" width="12" height="6" rx="1" fill="#555" />
+                <!-- LED -->
+                <circle cx="271" cy="202" r="2.5" fill="#2e7d32" stroke="#1b5e20" stroke-width="0.4" opacity="0.6" />
+                <!-- terminal screws top -->
+                <circle cx="256" cy="128" r="3" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="254" y1="128" x2="258" y2="128" stroke="#666" stroke-width="0.5" />
+                <circle cx="271" cy="128" r="3" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="269" y1="128" x2="273" y2="128" stroke="#666" stroke-width="0.5" />
+                <circle cx="286" cy="128" r="3" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="284" y1="128" x2="288" y2="128" stroke="#666" stroke-width="0.5" />
+                <!-- terminal labels -->
+                <text x="254" y="124" class="terminal-text">A1</text>
+                <text x="268" y="124" class="terminal-text">15</text>
+                <text x="280" y="124" class="terminal-text">18</text>
+                <text x="256" y="246" class="terminal-text">A2</text>
+                <!-- DIN clip -->
+                <rect x="259" y="224" width="24" height="10" rx="1" fill="#888" stroke="#666" stroke-width="0.4" />
+                <text x="271" y="218" text-anchor="middle" fill="#aaa" font-size="5" font-weight="600">TMR</text>
+            </g>
+
+            <!-- R1: Slim Relay — 6.2mm interface relay -->
+            <g id="comp-R1">
+                <rect x="316" y="130" width="18" height="104" rx="1" fill="#2a2a2a" stroke="#555" stroke-width="1" />
+                <!-- colored indicator band -->
+                <rect x="316" y="140" width="18" height="4" fill="#ff8c00" />
+                <!-- LED window -->
+                <rect x="320" y="148" width="10" height="6" rx="1" fill="#1a1a1a" stroke="#444" stroke-width="0.3" />
+                <circle cx="325" cy="151" r="1.5" fill="#2e7d32" opacity="0.5" />
+                <!-- label area -->
+                <rect x="318" y="158" width="14" height="40" rx="1" fill="#333" stroke="#444" stroke-width="0.3" />
+                <text x="325" y="170" text-anchor="middle" fill="#ccc" font-size="4" font-weight="700">R1</text>
+                <text x="325" y="178" text-anchor="middle" fill="#888" font-size="3">6A</text>
+                <text x="325" y="185" text-anchor="middle" fill="#888" font-size="3">250V</text>
+                <!-- test button -->
+                <rect x="320" y="202" width="10" height="6" rx="1" fill="#555" stroke="#777" stroke-width="0.3" />
+                <!-- terminal screws -->
+                <circle cx="321" cy="132" r="2.5" fill="#c0c0c0" stroke="#888" stroke-width="0.4" />
+                <circle cx="331" cy="132" r="2.5" fill="#c0c0c0" stroke="#888" stroke-width="0.4" />
+                <text x="318" y="126" class="terminal-text">A1</text>
+                <text x="328" y="126" class="terminal-text">11</text>
+                <text x="318" y="244" class="terminal-text">A2</text>
+                <!-- DIN clip -->
+                <rect x="319" y="220" width="12" height="8" rx="1" fill="#888" stroke="#666" stroke-width="0.3" />
+            </g>
+
+            <!-- C1: DILM9 Contactor — realistic Eaton style -->
+            <g id="comp-C1">
+                <!-- main body dark -->
+                <rect x="356" y="118" width="80" height="126" rx="2" fill="#1a1a1a" stroke="#333" stroke-width="1.2" />
+                <!-- top terminal block lighter -->
+                <rect x="356" y="118" width="80" height="16" rx="2" fill="#2a2a2a" />
+                <rect x="356" y="130" width="80" height="4" fill="#2a2a2a" />
+                <!-- bottom terminal block -->
+                <rect x="356" y="232" width="80" height="12" rx="2" fill="#2a2a2a" />
+                <rect x="356" y="228" width="80" height="4" fill="#2a2a2a" />
+                <!-- label panel -->
+                <rect x="364" y="140" width="64" height="40" rx="2" fill="#e8e8e8" stroke="#bbb" stroke-width="0.5" />
+                <text x="396" y="152" text-anchor="middle" fill="#003380" font-size="6" font-weight="800">EATON</text>
+                <text x="396" y="162" text-anchor="middle" fill="#222" font-size="7" font-weight="700">DILM9</text>
+                <text x="396" y="172" text-anchor="middle" fill="#555" font-size="4.5">4kW / 400V</text>
+                <!-- manual override handle -->
+                <rect x="384" y="186" width="24" height="12" rx="2" fill="#333" stroke="#555" stroke-width="0.5" />
+                <rect x="388" y="188" width="16" height="8" rx="1" fill="#444" stroke="#666" stroke-width="0.3" />
+                <text x="396" y="195" text-anchor="middle" fill="#aaa" font-size="3.5">MAN</text>
+                <!-- aux contact block on side -->
+                <rect x="430" y="182" width="6" height="26" rx="1" fill="#333" stroke="#555" stroke-width="0.5" />
+                <!-- coil indicators -->
+                <rect x="358" y="204" width="14" height="10" rx="1" fill="#222" stroke="#444" stroke-width="0.4" />
+                <text x="365" y="212" text-anchor="middle" fill="#888" font-size="3.5">A1</text>
+                <rect x="358" y="216" width="14" height="10" rx="1" fill="#222" stroke="#444" stroke-width="0.4" />
+                <text x="365" y="224" text-anchor="middle" fill="#888" font-size="3.5">A2</text>
+                <!-- power terminal screws top -->
+                <circle cx="370" cy="120" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="368" y1="120" x2="372" y2="120" stroke="#666" stroke-width="0.6" />
+                <!-- power terminal screws bottom -->
+                <circle cx="370" cy="240" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="368" y1="240" x2="372" y2="240" stroke="#666" stroke-width="0.6" />
+                <!-- coil terminals left side -->
+                <rect x="348" y="188" width="8" height="6" rx="1" fill="#c0c0c0" stroke="#888" stroke-width="0.4" />
+                <rect x="348" y="200" width="8" height="6" rx="1" fill="#c0c0c0" stroke="#888" stroke-width="0.4" />
+                <!-- aux terminals right side -->
+                <rect x="430" y="188" width="8" height="6" rx="1" fill="#c0c0c0" stroke="#888" stroke-width="0.4" />
+                <rect x="430" y="200" width="8" height="6" rx="1" fill="#c0c0c0" stroke="#888" stroke-width="0.4" />
+                <!-- terminal labels -->
+                <text x="370" y="114" text-anchor="middle" class="terminal-text">1/L1</text>
+                <text x="370" y="252" text-anchor="middle" class="terminal-text">2/T1</text>
+                <text x="346" y="194" class="terminal-text" text-anchor="end">A1</text>
+                <text x="346" y="206" class="terminal-text" text-anchor="end">A2</text>
+                <text x="440" y="194" class="terminal-text">13</text>
+                <text x="440" y="206" class="terminal-text">14</text>
+                <text x="396" y="136" text-anchor="middle" fill="#888" font-size="5" font-weight="600">C1</text>
+            </g>
+
+            <!-- 24V double deck terminals — realistic Weidmüller/Phoenix style -->
+            <text x="520" y="110" text-anchor="middle" class="component-label">מהדקי 24V</text>
+            <!-- terminal 1 -->
+            <g transform="translate(462 130)">
+                <rect x="0" y="20" width="20" height="40" rx="1" fill="#d4d4d4" stroke="#aaa" stroke-width="0.8" />
+                <!-- top deck (red = +) -->
+                <rect x="1" y="2" width="18" height="18" rx="1" fill="#cc2222" stroke="#991111" stroke-width="0.8" />
+                <rect x="4" y="5" width="12" height="5" rx="1" fill="#aa1111" />
+                <circle cx="10" cy="11" r="2.5" fill="#881111" stroke="#661111" stroke-width="0.4" />
+                <text x="10" y="18" text-anchor="middle" fill="#fff" font-size="4" font-weight="700">+</text>
+                <!-- bottom deck (blue = -) -->
+                <rect x="1" y="60" width="18" height="18" rx="1" fill="#1a5da8" stroke="#114488" stroke-width="0.8" />
+                <rect x="4" y="63" width="12" height="5" rx="1" fill="#144d8a" />
+                <circle cx="10" cy="69" r="2.5" fill="#103d70" stroke="#0d3060" stroke-width="0.4" />
+                <text x="10" y="76" text-anchor="middle" fill="#fff" font-size="4" font-weight="700">−</text>
+            </g>
+            <!-- terminal 2 -->
+            <g transform="translate(486 130)">
+                <rect x="0" y="20" width="20" height="40" rx="1" fill="#d4d4d4" stroke="#aaa" stroke-width="0.8" />
+                <rect x="1" y="2" width="18" height="18" rx="1" fill="#cc2222" stroke="#991111" stroke-width="0.8" />
+                <rect x="4" y="5" width="12" height="5" rx="1" fill="#aa1111" />
+                <circle cx="10" cy="11" r="2.5" fill="#881111" stroke="#661111" stroke-width="0.4" />
+                <text x="10" y="18" text-anchor="middle" fill="#fff" font-size="4" font-weight="700">+</text>
+                <rect x="1" y="60" width="18" height="18" rx="1" fill="#1a5da8" stroke="#114488" stroke-width="0.8" />
+                <rect x="4" y="63" width="12" height="5" rx="1" fill="#144d8a" />
+                <circle cx="10" cy="69" r="2.5" fill="#103d70" stroke="#0d3060" stroke-width="0.4" />
+                <text x="10" y="76" text-anchor="middle" fill="#fff" font-size="4" font-weight="700">−</text>
+            </g>
+            <!-- terminal 3 -->
+            <g transform="translate(510 130)">
+                <rect x="0" y="20" width="20" height="40" rx="1" fill="#d4d4d4" stroke="#aaa" stroke-width="0.8" />
+                <rect x="1" y="2" width="18" height="18" rx="1" fill="#cc2222" stroke="#991111" stroke-width="0.8" />
+                <rect x="4" y="5" width="12" height="5" rx="1" fill="#aa1111" />
+                <circle cx="10" cy="11" r="2.5" fill="#881111" stroke="#661111" stroke-width="0.4" />
+                <text x="10" y="18" text-anchor="middle" fill="#fff" font-size="4" font-weight="700">+</text>
+                <rect x="1" y="60" width="18" height="18" rx="1" fill="#1a5da8" stroke="#114488" stroke-width="0.8" />
+                <rect x="4" y="63" width="12" height="5" rx="1" fill="#144d8a" />
+                <circle cx="10" cy="69" r="2.5" fill="#103d70" stroke="#0d3060" stroke-width="0.4" />
+                <text x="10" y="76" text-anchor="middle" fill="#fff" font-size="4" font-weight="700">−</text>
+            </g>
+            <!-- terminal 4 -->
+            <g transform="translate(534 130)">
+                <rect x="0" y="20" width="20" height="40" rx="1" fill="#d4d4d4" stroke="#aaa" stroke-width="0.8" />
+                <rect x="1" y="2" width="18" height="18" rx="1" fill="#cc2222" stroke="#991111" stroke-width="0.8" />
+                <rect x="4" y="5" width="12" height="5" rx="1" fill="#aa1111" />
+                <circle cx="10" cy="11" r="2.5" fill="#881111" stroke="#661111" stroke-width="0.4" />
+                <text x="10" y="18" text-anchor="middle" fill="#fff" font-size="4" font-weight="700">+</text>
+                <rect x="1" y="60" width="18" height="18" rx="1" fill="#1a5da8" stroke="#114488" stroke-width="0.8" />
+                <rect x="4" y="63" width="12" height="5" rx="1" fill="#144d8a" />
+                <circle cx="10" cy="69" r="2.5" fill="#103d70" stroke="#0d3060" stroke-width="0.4" />
+                <text x="10" y="76" text-anchor="middle" fill="#fff" font-size="4" font-weight="700">−</text>
+            </g>
+
+            <!-- field terminals 1-4 — realistic grey Phoenix-style -->
+            <text x="630" y="110" text-anchor="middle" class="component-label">מהדקי שדה</text>
+            <g transform="translate(592 136)">
+                <rect x="0" y="0" width="18" height="38" rx="1" fill="#b8b8b8" stroke="#888" stroke-width="0.8" />
+                <rect x="3" y="4" width="12" height="6" rx="1" fill="#999" stroke="#777" stroke-width="0.4" />
+                <circle cx="9" cy="7" r="2" fill="#777" stroke="#666" stroke-width="0.3" />
+                <rect x="2" y="14" width="14" height="10" rx="1" fill="#e8e8e8" stroke="#bbb" stroke-width="0.3" />
+                <text x="9" y="22" text-anchor="middle" fill="#333" font-size="5" font-weight="700">1</text>
+                <rect x="3" y="28" width="12" height="6" rx="1" fill="#999" stroke="#777" stroke-width="0.4" />
+                <circle cx="9" cy="31" r="2" fill="#777" stroke="#666" stroke-width="0.3" />
+            </g>
+            <g transform="translate(614 136)">
+                <rect x="0" y="0" width="18" height="38" rx="1" fill="#b8b8b8" stroke="#888" stroke-width="0.8" />
+                <rect x="3" y="4" width="12" height="6" rx="1" fill="#999" stroke="#777" stroke-width="0.4" />
+                <circle cx="9" cy="7" r="2" fill="#777" stroke="#666" stroke-width="0.3" />
+                <rect x="2" y="14" width="14" height="10" rx="1" fill="#e8e8e8" stroke="#bbb" stroke-width="0.3" />
+                <text x="9" y="22" text-anchor="middle" fill="#333" font-size="5" font-weight="700">2</text>
+                <rect x="3" y="28" width="12" height="6" rx="1" fill="#999" stroke="#777" stroke-width="0.4" />
+                <circle cx="9" cy="31" r="2" fill="#777" stroke="#666" stroke-width="0.3" />
+            </g>
+            <g transform="translate(636 136)">
+                <rect x="0" y="0" width="18" height="38" rx="1" fill="#b8b8b8" stroke="#888" stroke-width="0.8" />
+                <rect x="3" y="4" width="12" height="6" rx="1" fill="#999" stroke="#777" stroke-width="0.4" />
+                <circle cx="9" cy="7" r="2" fill="#777" stroke="#666" stroke-width="0.3" />
+                <rect x="2" y="14" width="14" height="10" rx="1" fill="#e8e8e8" stroke="#bbb" stroke-width="0.3" />
+                <text x="9" y="22" text-anchor="middle" fill="#333" font-size="5" font-weight="700">3</text>
+                <rect x="3" y="28" width="12" height="6" rx="1" fill="#999" stroke="#777" stroke-width="0.4" />
+                <circle cx="9" cy="31" r="2" fill="#777" stroke="#666" stroke-width="0.3" />
+            </g>
+            <g transform="translate(658 136)">
+                <rect x="0" y="0" width="18" height="38" rx="1" fill="#b8b8b8" stroke="#888" stroke-width="0.8" />
+                <rect x="3" y="4" width="12" height="6" rx="1" fill="#999" stroke="#777" stroke-width="0.4" />
+                <circle cx="9" cy="7" r="2" fill="#777" stroke="#666" stroke-width="0.3" />
+                <rect x="2" y="14" width="14" height="10" rx="1" fill="#e8e8e8" stroke="#bbb" stroke-width="0.3" />
+                <text x="9" y="22" text-anchor="middle" fill="#333" font-size="5" font-weight="700">4</text>
+                <rect x="3" y="28" width="12" height="6" rx="1" fill="#999" stroke="#777" stroke-width="0.4" />
+                <circle cx="9" cy="31" r="2" fill="#777" stroke="#666" stroke-width="0.3" />
+            </g>
+
+            <!-- ===== DIN RAIL 2 components ===== -->
+
+            <!-- Q2: MCB — realistic miniature circuit breaker -->
+            <g id="comp-Q2">
+                <!-- body -->
+                <rect x="100" y="370" width="56" height="126" rx="2" fill="#1a1a1a" stroke="#333" stroke-width="1.2" />
+                <!-- top terminal area -->
+                <rect x="100" y="370" width="56" height="14" rx="2" fill="#2a2a2a" />
+                <rect x="100" y="380" width="56" height="4" fill="#2a2a2a" />
+                <!-- bottom terminal area -->
+                <rect x="100" y="484" width="56" height="12" rx="2" fill="#2a2a2a" />
+                <rect x="100" y="480" width="56" height="4" fill="#2a2a2a" />
+                <!-- handle (ON position) -->
+                <rect x="112" y="395" width="32" height="26" rx="3" fill="#e74c3c" stroke="#c0392b" stroke-width="0.8" />
+                <rect x="116" y="398" width="24" height="10" rx="2" fill="#d63031" />
+                <text x="128" y="407" text-anchor="middle" fill="#fff" font-size="5" font-weight="700">I</text>
+                <text x="128" y="418" text-anchor="middle" fill="#ffcdd2" font-size="3.5">ON</text>
+                <!-- trip indicator window -->
+                <rect x="118" y="425" width="20" height="8" rx="1" fill="#111" stroke="#444" stroke-width="0.4" />
+                <rect x="120" y="427" width="6" height="4" rx="1" fill="#2e7d32" opacity="0.6" />
+                <!-- label area -->
+                <rect x="108" y="438" width="40" height="30" rx="2" fill="#e8e8e8" stroke="#bbb" stroke-width="0.4" />
+                <text x="128" y="448" text-anchor="middle" fill="#222" font-size="5" font-weight="700">C6A</text>
+                <text x="128" y="456" text-anchor="middle" fill="#555" font-size="4">1+N</text>
+                <text x="128" y="464" text-anchor="middle" fill="#555" font-size="3.5">10kA</text>
+                <!-- terminal screws -->
+                <circle cx="116" cy="374" r="3" fill="#c0c0c0" stroke="#888" stroke-width="0.4" />
+                <line x1="114" y1="374" x2="118" y2="374" stroke="#666" stroke-width="0.5" />
+                <circle cx="140" cy="374" r="3" fill="#c0c0c0" stroke="#888" stroke-width="0.4" />
+                <line x1="138" y1="374" x2="142" y2="374" stroke="#666" stroke-width="0.5" />
+                <circle cx="116" cy="492" r="3" fill="#c0c0c0" stroke="#888" stroke-width="0.4" />
+                <line x1="114" y1="492" x2="118" y2="492" stroke="#666" stroke-width="0.5" />
+                <circle cx="140" cy="492" r="3" fill="#c0c0c0" stroke="#888" stroke-width="0.4" />
+                <line x1="138" y1="492" x2="142" y2="492" stroke="#666" stroke-width="0.5" />
+                <!-- terminal labels -->
+                <text x="116" y="368" text-anchor="middle" class="terminal-text">1</text>
+                <text x="140" y="368" text-anchor="middle" class="terminal-text">3</text>
+                <text x="116" y="504" text-anchor="middle" class="terminal-text">2</text>
+                <text x="140" y="504" text-anchor="middle" class="terminal-text">4</text>
+                <!-- DIN clip -->
+                <rect x="116" y="472" width="24" height="6" rx="1" fill="#888" stroke="#666" stroke-width="0.3" />
+                <text x="128" y="388" text-anchor="middle" fill="#aaa" font-size="5" font-weight="600">Q2</text>
+            </g>
+
+            <!-- Q1: PKZM — realistic Eaton motor protection switch -->
+            <g id="comp-Q1">
+                <!-- main body -->
+                <rect x="180" y="370" width="120" height="126" rx="2" fill="#1a1a1a" stroke="#333" stroke-width="1.2" />
+                <!-- top terminal block -->
+                <rect x="180" y="370" width="120" height="16" rx="2" fill="#2a2a2a" />
+                <rect x="180" y="382" width="120" height="4" fill="#2a2a2a" />
+                <!-- bottom terminal block -->
+                <rect x="180" y="484" width="120" height="12" rx="2" fill="#2a2a2a" />
+                <rect x="180" y="480" width="120" height="4" fill="#2a2a2a" />
+                <!-- rotary handle housing -->
+                <circle cx="240" cy="424" r="22" fill="#222" stroke="#444" stroke-width="1" />
+                <circle cx="240" cy="424" r="18" fill="#1a1a1a" stroke="#555" stroke-width="0.8" />
+                <!-- green zone (ON) -->
+                <path d="M 240 406 A 18 18 0 0 1 258 424" fill="none" stroke="#2e7d32" stroke-width="3" />
+                <!-- red zone (OFF) -->
+                <path d="M 222 424 A 18 18 0 0 1 240 406" fill="none" stroke="#c62828" stroke-width="3" />
+                <!-- yellow zone (TRIP) -->
+                <path d="M 258 424 A 18 18 0 0 1 240 442" fill="none" stroke="#f9a825" stroke-width="3" />
+                <!-- handle -->
+                <rect x="234" y="410" width="12" height="28" rx="3" fill="#333" stroke="#555" stroke-width="0.8" />
+                <rect x="236" y="412" width="8" height="10" rx="2" fill="#444" />
+                <!-- pointer -->
+                <line x1="240" y1="424" x2="240" y2="408" stroke="#e0e0e0" stroke-width="1.5" stroke-linecap="round" />
+                <!-- labels around dial -->
+                <text x="224" y="412" fill="#c62828" font-size="4" font-weight="700">O</text>
+                <text x="254" y="412" fill="#2e7d32" font-size="4" font-weight="700">I</text>
+                <text x="256" y="438" fill="#f9a825" font-size="3.5" font-weight="600">T</text>
+                <!-- current setting window -->
+                <rect x="196" y="398" width="24" height="10" rx="1" fill="#111" stroke="#444" stroke-width="0.4" />
+                <text x="208" y="406" text-anchor="middle" fill="#ff6600" font-size="5" font-weight="700">16A</text>
+                <!-- TEST button -->
+                <rect x="264" y="400" width="18" height="8" rx="2" fill="#444" stroke="#666" stroke-width="0.5" />
+                <text x="273" y="407" text-anchor="middle" fill="#aaa" font-size="3.5">TEST</text>
+                <!-- label panel -->
+                <rect x="192" y="446" width="96" height="22" rx="2" fill="#e8e8e8" stroke="#bbb" stroke-width="0.4" />
+                <text x="240" y="455" text-anchor="middle" fill="#003380" font-size="5" font-weight="800">EATON</text>
+                <text x="240" y="463" text-anchor="middle" fill="#222" font-size="5" font-weight="700">PKZM0-16</text>
+                <!-- terminal screws top - 3 poles -->
+                <circle cx="202" cy="374" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="200" y1="374" x2="204" y2="374" stroke="#666" stroke-width="0.6" />
+                <circle cx="228" cy="374" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="226" y1="374" x2="230" y2="374" stroke="#666" stroke-width="0.6" />
+                <circle cx="254" cy="374" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="252" y1="374" x2="256" y2="374" stroke="#666" stroke-width="0.6" />
+                <!-- terminal screws bottom -->
+                <circle cx="202" cy="490" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="200" y1="490" x2="204" y2="490" stroke="#666" stroke-width="0.6" />
+                <circle cx="228" cy="490" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="226" y1="490" x2="230" y2="490" stroke="#666" stroke-width="0.6" />
+                <circle cx="254" cy="490" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="252" y1="490" x2="256" y2="490" stroke="#666" stroke-width="0.6" />
+                <!-- terminal labels -->
+                <text x="202" y="368" text-anchor="middle" class="terminal-text">1</text>
+                <text x="228" y="368" text-anchor="middle" class="terminal-text">3</text>
+                <text x="254" y="368" text-anchor="middle" class="terminal-text">5</text>
+                <text x="202" y="504" text-anchor="middle" class="terminal-text">2</text>
+                <text x="228" y="504" text-anchor="middle" class="terminal-text">4</text>
+                <text x="254" y="504" text-anchor="middle" class="terminal-text">6</text>
+                <!-- DIN clip -->
+                <rect x="216" y="472" width="48" height="6" rx="1" fill="#888" stroke="#666" stroke-width="0.3" />
+                <text x="240" y="392" text-anchor="middle" fill="#aaa" font-size="5" font-weight="600">Q1</text>
+            </g>
+
+            <!-- T1: Power Supply — realistic DIN rail PSU -->
+            <g id="comp-T1">
+                <!-- main body -->
+                <rect x="470" y="370" width="126" height="126" rx="2" fill="#d4d4d4" stroke="#aaa" stroke-width="1.2" />
+                <!-- top dark section (AC input) -->
+                <rect x="470" y="370" width="126" height="30" rx="2" fill="#2a2a2a" />
+                <rect x="470" y="396" width="126" height="4" fill="#2a2a2a" />
+                <!-- bottom dark section (DC output) -->
+                <rect x="470" y="484" width="126" height="12" rx="2" fill="#2a2a2a" />
+                <rect x="470" y="480" width="126" height="4" fill="#2a2a2a" />
+                <!-- ventilation slots -->
+                <line x1="478" y1="404" x2="478" y2="440" stroke="#bbb" stroke-width="0.5" />
+                <line x1="482" y1="404" x2="482" y2="440" stroke="#bbb" stroke-width="0.5" />
+                <line x1="486" y1="404" x2="486" y2="440" stroke="#bbb" stroke-width="0.5" />
+                <line x1="490" y1="404" x2="490" y2="440" stroke="#bbb" stroke-width="0.5" />
+                <!-- label area -->
+                <rect x="496" y="402" width="90" height="44" rx="2" fill="#e8e8e8" stroke="#bbb" stroke-width="0.5" />
+                <text x="541" y="414" text-anchor="middle" fill="#003380" font-size="5" font-weight="800">MEAN WELL</text>
+                <text x="541" y="424" text-anchor="middle" fill="#222" font-size="7" font-weight="700">HDR-30-24</text>
+                <text x="541" y="434" text-anchor="middle" fill="#555" font-size="4.5">AC 100-240V</text>
+                <text x="541" y="442" text-anchor="middle" fill="#555" font-size="4.5">DC 24V 1.5A</text>
+                <!-- power LED -->
+                <circle cx="492" cy="448" r="3" fill="#2e7d32" stroke="#1b5e20" stroke-width="0.5" />
+                <text x="492" y="458" text-anchor="middle" fill="#555" font-size="3">PWR</text>
+                <!-- DC ADJ potentiometer -->
+                <circle cx="492" cy="470" r="4" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="492" y1="466" x2="492" y2="469" stroke="#666" stroke-width="0.8" />
+                <text x="492" y="478" text-anchor="middle" fill="#555" font-size="3">ADJ</text>
+                <!-- terminal screws top (AC) -->
+                <circle cx="500" cy="374" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="498" y1="374" x2="502" y2="374" stroke="#666" stroke-width="0.6" />
+                <circle cx="534" cy="374" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="532" y1="374" x2="536" y2="374" stroke="#666" stroke-width="0.6" />
+                <!-- terminal screws bottom (DC) -->
+                <circle cx="500" cy="492" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="498" y1="492" x2="502" y2="492" stroke="#666" stroke-width="0.6" />
+                <circle cx="528" cy="492" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="526" y1="492" x2="530" y2="492" stroke="#666" stroke-width="0.6" />
+                <circle cx="556" cy="492" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="554" y1="492" x2="558" y2="492" stroke="#666" stroke-width="0.6" />
+                <circle cx="584" cy="492" r="3.5" fill="#c0c0c0" stroke="#888" stroke-width="0.5" />
+                <line x1="582" y1="492" x2="586" y2="492" stroke="#666" stroke-width="0.6" />
+                <!-- terminal labels -->
+                <text x="500" y="368" text-anchor="middle" class="terminal-text">L</text>
+                <text x="534" y="368" text-anchor="middle" class="terminal-text">N</text>
+                <text x="500" y="504" text-anchor="middle" class="terminal-text">+V</text>
+                <text x="528" y="504" text-anchor="middle" class="terminal-text">-V</text>
+                <text x="556" y="504" text-anchor="middle" class="terminal-text">+V</text>
+                <text x="584" y="504" text-anchor="middle" class="terminal-text">-V</text>
+                <!-- DIN clip -->
+                <rect x="510" y="470" width="46" height="6" rx="1" fill="#888" stroke="#666" stroke-width="0.3" />
+                <text x="533" y="392" text-anchor="middle" fill="#ccc" font-size="5" font-weight="600">T1</text>
+            </g>
+
+            <!-- cable entries bottom: L, N, PE -->
+            <rect x="138" y="640" width="170" height="18" rx="4" fill="#121a22" stroke="#334a5c" stroke-width="1" />
+            <text x="223" y="672" text-anchor="middle" class="component-sub">הזנה מלמטה</text>
+            <circle cx="170" cy="649" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="210" cy="649" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="250" cy="649" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <text x="170" y="664" text-anchor="middle" class="terminal-text">L</text>
+            <text x="210" y="664" text-anchor="middle" class="terminal-text">N</text>
+            <text x="250" y="664" text-anchor="middle" class="terminal-text">PE</text>
+
+            <!-- cable entries top: field cables -->
+            <rect x="500" y="54" width="188" height="18" rx="4" fill="#121a22" stroke="#334a5c" stroke-width="1" />
+            <text x="594" y="48" text-anchor="middle" class="component-sub">כבלי שדה מלמעלה</text>
+            <circle cx="528" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="554" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="580" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="606" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="632" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="658" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <circle cx="684" cy="63" r="6" fill="#18232d" stroke="#445968" stroke-width="1" />
+            <text x="528" y="78" text-anchor="middle" class="terminal-text">M-L</text>
+            <text x="554" y="78" text-anchor="middle" class="terminal-text">M-N</text>
+            <text x="580" y="78" text-anchor="middle" class="terminal-text">PE</text>
+            <text x="606" y="78" text-anchor="middle" class="terminal-text">S1</text>
+            <text x="632" y="78" text-anchor="middle" class="terminal-text">S1</text>
+            <text x="658" y="78" text-anchor="middle" class="terminal-text">S2</text>
+            <text x="684" y="78" text-anchor="middle" class="terminal-text">S2</text>
+
+            <!-- branch stems -->
+            <g id="branch-stems">
+                <!-- L branch: 170,649 splits -->
+                <path class="branch-stem" d="M 170 649 L 178 638" stroke="#e8735a" />
+                <!-- N branch: 210,649 splits -->
+                <path class="branch-stem" d="M 210 649 L 218 638" stroke="#5b9bd5" />
+            </g>
+
+            <!-- ===== WIRES ===== -->
+            <!--
+                Layout reference (EXPANDED for wire spacing):
+                Left duct: x=48-92 (44px, 7 wires @ 6px: x=52,58,64,70,76,82,88)
+                Right duct: x=722-808 (86px, 13 wires @ 6px: x=726..798)
+                Top H duct: y=58-110 (52px, 10 wires @ 5px: y=63..108)
+                Mid H duct: y=272-312 (40px, 6 wires @ 6px: y=278..308)
+                Bot H duct: y=520-586 (66px, 11 wires @ 5px: y=528..578)
+
+                LEFT DUCT channels: W20=52, W18=58, W21=64, W4=70, W1=76, W8=82, W9=88
+                RIGHT DUCT channels: W5=726, W6=732, W7=738, W10=744, W22=750, W23=756,
+                    W11=762, W13=768, W15=774, W21=780, W16=786, W17=792, W19=798
+                TOP DUCT channels: W12=63, W13=68, W5=73, W18=78, W6=83, W14=88, W20=93, W7=98, W16=103, W19=108
+                MID DUCT channels: W18=278, W4=284, W20=290, W15=296, W5=302, W17=308
+                BOT DUCT channels: W4=528, W8=533, W22=538, W23=543, W1=548, W9=553, W10=558, W6=563, W11=568, W7=573, W21=578
+            -->
+            <g id="wires-layer">
+                <!-- 1: L (feed) → Q1/1 -->
+                <g class="wire-group wire-hidden" data-wire="1"><path class="wire-base" d="M 178 638 L 178 548 L 76 548 L 76 374 L 202 374"/><text class="wire-number" x="76" y="470">1</text></g>
+                <!-- 2: Q1/2→Q1/3 bridge -->
+                <g class="wire-group wire-hidden" data-wire="2"><path class="wire-base" d="M 202 490 L 215 490 L 215 380 L 228 380 L 228 374"/><text class="wire-number" x="215" y="434">2</text></g>
+                <!-- 3: Q1/4→Q1/5 bridge -->
+                <g class="wire-group wire-hidden" data-wire="3"><path class="wire-base" d="M 228 490 L 242 490 L 242 380 L 254 380 L 254 374"/><text class="wire-number" x="242" y="434">3</text></g>
+                <!-- 4: Q1/6 → C1/1-L1 -->
+                <g class="wire-group wire-hidden" data-wire="4"><path class="wire-base" d="M 254 490 L 254 528 L 70 528 L 70 284 L 370 284 L 370 120"/><text class="wire-number" x="70" y="400">4</text><text class="wire-number" x="250" y="281">4</text></g>
+                <!-- 5: C1/2-T1 → M-L (field cable top) -->
+                <g class="wire-group wire-hidden" data-wire="5"><path class="wire-base" d="M 370 240 L 370 302 L 726 302 L 726 73 L 528 73 L 528 63"/><text class="wire-number" x="726" y="190">5</text><text class="wire-number" x="600" y="70">5</text></g>
+                <!-- 6: N (feed) → M-N -->
+                <g class="wire-group wire-hidden" data-wire="6"><path class="wire-base" d="M 218 638 L 218 563 L 732 563 L 732 83 L 554 83 L 554 63"/><text class="wire-number" x="732" y="310">6</text></g>
+                <!-- 7: PE → PE field -->
+                <g class="wire-group wire-hidden" data-wire="7"><path class="wire-base" d="M 250 649 L 250 573 L 738 573 L 738 98 L 580 98 L 580 63"/><text class="wire-number" x="738" y="340">7</text></g>
+                <!-- 8: L (feed) → Q2/1 (MCB input) -->
+                <g class="wire-group wire-hidden" data-wire="8"><path class="wire-base" d="M 170 649 L 170 533 L 82 533 L 82 374 L 116 374"/><text class="wire-number" x="82" y="450">8</text></g>
+                <!-- 9: N (feed) → Q2/3 (MCB N input) -->
+                <g class="wire-group wire-hidden" data-wire="9"><path class="wire-base" d="M 210 649 L 210 553 L 88 553 L 88 374 L 140 374"/><text class="wire-number" x="88" y="470">9</text></g>
+                <!-- 22: Q2/2 → T1/L -->
+                <g class="wire-group wire-hidden" data-wire="22"><path class="wire-base" d="M 116 492 L 116 538 L 750 538 L 750 374 L 500 374"/><text class="wire-number" x="750" y="460">22</text></g>
+                <!-- 23: Q2/4 → T1/N -->
+                <g class="wire-group wire-hidden" data-wire="23"><path class="wire-base" d="M 140 492 L 140 543 L 756 543 L 756 374 L 534 374"/><text class="wire-number" x="756" y="440">23</text></g>
+                <!-- 10: T1/+24 → 24+ terminal 1 -->
+                <g class="wire-group wire-hidden" data-wire="10"><path class="wire-base" d="M 500 492 L 500 558 L 744 558 L 744 141 L 472 141"/><text class="wire-number" x="744" y="370">10</text></g>
+                <!-- 11: T1/0V → 24- terminal 1 -->
+                <g class="wire-group wire-hidden" data-wire="11"><path class="wire-base" d="M 528 492 L 528 568 L 762 568 L 762 248 L 456 248 L 456 199 L 472 199"/><text class="wire-number" x="762" y="400">11</text></g>
+                <!-- 12: 24+ terminal 1 → Y1/A1 -->
+                <g class="wire-group wire-hidden" data-wire="12"><path class="wire-base" d="M 472 141 L 472 63 L 100 63 L 100 120 L 124 120"/><text class="wire-number" x="280" y="60">12</text></g>
+                <!-- 13: Y1/A2 → 24- terminal 2 -->
+                <g class="wire-group wire-hidden" data-wire="13"><path class="wire-base" d="M 138 120 L 138 68 L 768 68 L 768 254 L 478 254 L 478 199 L 496 199"/><text class="wire-number" x="768" y="170">13</text></g>
+                <!-- 14: Y1/13 (output) → field terminal 1 -->
+                <g class="wire-group wire-hidden" data-wire="14"><path class="wire-base" d="M 220 120 L 220 88 L 601 88 L 601 136"/><text class="wire-number" x="400" y="85">14</text></g>
+                <!-- 15: field terminal 2 → Y1/S12 -->
+                <g class="wire-group wire-hidden" data-wire="15"><path class="wire-base" d="M 623 136 L 623 128 L 774 128 L 774 296 L 169 296 L 169 120"/><text class="wire-number" x="774" y="220">15</text><text class="wire-number" x="400" y="293">15</text></g>
+                <!-- 16: 24+ terminal 3 → field terminal 3 -->
+                <g class="wire-group wire-hidden" data-wire="16"><path class="wire-base" d="M 520 141 L 520 103 L 786 103 L 786 134 L 645 134 L 645 136"/><text class="wire-number" x="660" y="100">16</text></g>
+                <!-- 17: field terminal 4 → Y1/S22 -->
+                <g class="wire-group wire-hidden" data-wire="17"><path class="wire-base" d="M 667 136 L 667 122 L 792 122 L 792 308 L 200 308 L 200 120"/><text class="wire-number" x="792" y="230">17</text><text class="wire-number" x="400" y="305">17</text></g>
+                <!-- 18: TMR/A2 → TMR/A1 (via left duct) -->
+                <g class="wire-group wire-hidden" data-wire="18"><path class="wire-base" d="M 256 238 L 256 278 L 58 278 L 58 78 L 256 78 L 256 128"/><text class="wire-number" x="58" y="180">18</text></g>
+                <!-- 19: TMR/18 (output) → 24- terminal 3 -->
+                <g class="wire-group wire-hidden" data-wire="19"><path class="wire-base" d="M 286 128 L 286 108 L 798 108 L 798 260 L 502 260 L 502 199 L 520 199"/><text class="wire-number" x="798" y="200">19</text></g>
+                <!-- 20: TMR/15 → C1/A1 -->
+                <g class="wire-group wire-hidden" data-wire="20"><path class="wire-base" d="M 271 128 L 271 93 L 52 93 L 52 290 L 340 290 L 340 191 L 352 191"/><text class="wire-number" x="52" y="200">20</text></g>
+                <!-- 21: C1/A2 → 24- terminal 4 -->
+                <g class="wire-group wire-hidden" data-wire="21"><path class="wire-base" d="M 352 203 L 64 203 L 64 578 L 780 578 L 780 266 L 526 266 L 526 199 L 544 199"/><text class="wire-number" x="780" y="420">21</text><text class="wire-number" x="130" y="575">21</text></g>
+            </g>
+        </svg>
+    </div>
+    </div>
+
+    <!-- side panel with toggle buttons -->
+    <div class="side-panel" id="sidePanel">
+        <h2>כפתורי חוטים</h2>
+        <div class="side-btns">
+            <button id="allOnBtn">הדלק הכל</button>
+            <button id="allOffBtn">כבה הכל</button>
+        </div>
+        <div id="wireBtnList"></div>
+    </div>
+</div>
+
+<script>
+const wireInfo = {
+    1: 'L (הזנה) → Q1/1 (PKZM)',
+    2: 'Q1/2 → Q1/3 (גשר)',
+    3: 'Q1/4 → Q1/5 (גשר)',
+    4: 'Q1/6 → C1/1-L1 (מגען)',
+    5: 'C1/2-T1 → M-L (מנוע)',
+    6: 'N (הזנה) → M-N (מנוע)',
+    7: 'PE → PE (שדה)',
+    8: 'L (הזנה) → Q2/1 (MCB)',
+    9: 'N (הזנה) → Q2/3 (MCB)',
+    22: 'Q2/2 → T1/L (ספק)',
+    23: 'Q2/4 → T1/N (ספק)',
+    10: 'T1/+24 → 24+ מהדק 1',
+    11: 'T1/0V → 24- מהדק 1',
+    12: '24+ מהדק 1 → Y1/A1',
+    13: 'Y1/A2 → 24- מהדק 2',
+    14: 'Y1/13 (מוצא) → מהדק שדה 1',
+    15: 'מהדק שדה 2 → Y1/S12',
+    16: '24+ מהדק 3 → מהדק שדה 3',
+    17: 'מהדק שדה 4 → Y1/S22',
+    18: 'TMR/A2 → TMR/A1 (לולאת הזנה)',
+    19: 'TMR/18 (מוצא) → 24- מהדק 3',
+    20: 'TMR/15 → C1/A1 (סליל מגען)',
+    21: 'C1/A2 → 24- מהדק 4'
+};
+
+const wireColors = {
+    1:'#e8735a', 2:'#e8735a', 3:'#e8735a', 4:'#e8735a', 5:'#e8735a',
+    8:'#e8735a', 22:'#e8735a',
+    6:'#5b9bd5', 9:'#5b9bd5', 23:'#5b9bd5',
+    7:'#6ab56a',
+    10:'#e8a838', 12:'#e8a838',
+    11:'#45a8d0', 13:'#45a8d0', 19:'#45a8d0', 21:'#45a8d0',
+    14:'#ccb840', 15:'#ccb840', 16:'#ccb840', 17:'#ccb840',
+    18:'#a86cc0', 20:'#a86cc0'
+};
+
+// display order matches wiring sequence
+const wireOrder = [1,2,3,4,5,6,7,8,9,22,23,10,11,12,13,14,15,16,17,18,19,20,21];
+
+const wireGroups = {};
+document.querySelectorAll('.wire-group').forEach(g => {
+    wireGroups[g.dataset.wire] = g;
+    const base = g.querySelector('.wire-base');
+    if (base) {
+        const hit = base.cloneNode();
+        hit.setAttribute('class', 'wire-hit');
+        g.insertBefore(hit, base);
+    }
+});
+
+const statusEl = document.getElementById('status');
+const wiresLayer = document.getElementById('wires-layer');
+const toggleState = {};
+wireOrder.forEach(n => { toggleState[n] = false; });
+
+let seqCount = 0;
+
+function updateStatus() {
+    const on = wireOrder.filter(n => toggleState[n]).length;
+    statusEl.textContent = `מצב: מוצגים ${on} מתוך ${wireOrder.length} חוטים`;
+}
+
+function setWireVisible(num, visible) {
+    toggleState[num] = visible;
+    const g = wireGroups[num];
+    if (!g) return;
+    if (visible) {
+        g.classList.add('wire-visible');
+        g.classList.remove('wire-hidden');
+    } else {
+        g.classList.remove('wire-visible');
+        g.classList.add('wire-hidden');
+    }
+    const btn = document.getElementById('wb_' + num);
+    if (btn) btn.classList.toggle('active', visible);
+    updateStatus();
+}
+
+function showNextWire() {
+    if (seqCount < wireOrder.length) {
+        seqCount++;
+        setWireVisible(wireOrder[seqCount - 1], true);
+    }
+}
+function showPreviousWire() {
+    if (seqCount > 0) {
+        setWireVisible(wireOrder[seqCount - 1], false);
+        seqCount--;
+    }
+}
+
+// build side panel buttons
+const btnList = document.getElementById('wireBtnList');
+wireOrder.forEach(num => {
+    const btn = document.createElement('button');
+    btn.className = 'wire-btn';
+    btn.id = 'wb_' + num;
+    btn.innerHTML = `<span class="dot" style="background:${wireColors[num] || '#888'}"></span><span class="num">${num}</span><span class="desc">${wireInfo[num] || ''}</span>`;
+    btn.addEventListener('click', () => {
+        toggleState[num] = !toggleState[num];
+        setWireVisible(num, toggleState[num]);
+        // update seqCount
+        seqCount = 0;
+        for (let i = 0; i < wireOrder.length; i++) {
+            if (toggleState[wireOrder[i]]) seqCount = i + 1;
+            else break;
+        }
+    });
+    btnList.appendChild(btn);
+});
+
+// all on / all off
+document.getElementById('allOnBtn').addEventListener('click', () => {
+    wireOrder.forEach(n => setWireVisible(n, true));
+    seqCount = wireOrder.length;
+});
+document.getElementById('allOffBtn').addEventListener('click', () => {
+    wireOrder.forEach(n => setWireVisible(n, false));
+    seqCount = 0;
+});
+
+// toolbar buttons
+document.getElementById('nextButton').addEventListener('click', showNextWire);
+document.getElementById('prevButton').addEventListener('click', showPreviousWire);
+document.getElementById('resetButton').addEventListener('click', () => {
+    wireOrder.forEach(n => setWireVisible(n, false));
+    seqCount = 0;
+});
+document.getElementById('showAllButton').addEventListener('click', () => {
+    wireOrder.forEach(n => setWireVisible(n, true));
+    seqCount = wireOrder.length;
+});
+
+// keyboard
+window.addEventListener('keydown', (event) => {
+    if (event.code === 'ArrowUp') { event.preventDefault(); showNextWire(); }
+    if (event.code === 'ArrowDown') { event.preventDefault(); showPreviousWire(); }
+});
+
+// hover highlight
+Object.entries(wireGroups).forEach(([num, g]) => {
+    g.addEventListener('mouseenter', () => {
+        if (!g.classList.contains('wire-visible')) return;
+        wiresLayer.classList.add('dimmed');
+        g.classList.add('wire-hl');
+        statusEl.textContent = `חוט ${num}: ${wireInfo[num] || ''}`;
+    });
+    g.addEventListener('mouseleave', () => {
+        wiresLayer.classList.remove('dimmed');
+        g.classList.remove('wire-hl');
+        updateStatus();
+    });
+});
+
+updateStatus();
+</script>
+</body>
+</html>
